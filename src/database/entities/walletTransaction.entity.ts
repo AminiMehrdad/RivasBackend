@@ -1,0 +1,69 @@
+import {
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn,
+  OneToOne,
+} from 'typeorm';
+import {  WalletEntity } from './wallet.entity';
+import { RequestsEntity } from './requests.entity';
+
+export enum TransactionDirection {
+  DEBIT  = 'DEBIT',
+  CREDIT = 'CREDIT',
+}
+
+export enum TransactionType {
+  CONSUME  = 'CONSUME',
+  REFUND   = 'REFUND',
+  DEPOSIT  = 'DEPOSIT',
+  WITHDRAW = 'WITHDRAW',
+}
+
+export enum TransactionReferenceType {
+  REQUEST = 'REQUEST',
+}
+
+@Entity('wallet_transactions')
+export class WalletTransactionEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ name: 'unique_id', type: 'varchar' })
+  uniqueId: string;
+
+  @Column({ name: 'wallet_id' })
+  walletId: number;
+
+  @Column({ type: 'enum', enum: TransactionDirection })
+  direction: TransactionDirection;
+
+  @Column({ type: 'decimal', precision: 18, scale: 4 })
+  amount: number;
+
+  @Column({ name: 'balance_after', type: 'decimal', precision: 18, scale: 4 })
+  balanceAfter: number;
+
+  @Column({ type: 'enum', enum: TransactionType })
+  type: TransactionType;
+
+  @Column({
+    name: 'reference_type',
+    type: 'enum',
+    enum: TransactionReferenceType,
+    nullable: true,
+  })
+  referenceType: TransactionReferenceType;
+
+  @Column({ name: 'reference_id', type: 'int', nullable: true })
+  referenceId: number;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @ManyToOne(() => WalletEntity, (wallet) => wallet.transactions)
+  @JoinColumn({ name: 'wallet_id' })
+  wallet: WalletEntity;
+
+  @OneToOne(() => RequestsEntity, (request) => request.walletTranscription)
+  @JoinColumn({name:"reference_id"})
+  requst: RequestsEntity
+
+}
