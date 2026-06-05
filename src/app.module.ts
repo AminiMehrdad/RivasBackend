@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
@@ -9,7 +9,10 @@ import { AppConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './redis/redis.module';
 import { DashboardModule } from './dashbord/dashbord.module';
-import { WalletModule } from './wallet/wallet.module';
+// import { WalletModule } from './wallet/wallet.module';
+import { AuthGuard } from './common/guards/auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
+import { LoggingInterceptor } from './common/Interceptors/logging.interceptor';
 
 @Module({
   imports: [
@@ -24,20 +27,28 @@ import { WalletModule } from './wallet/wallet.module';
     RedisModule,
     AuthModule,
     DashboardModule,
-    WalletModule
+    // WalletModule
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
     {
-      provide: APP_PIPE,
-      useClass: AppValidationPipe,
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
     {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      provide: APP_PIPE,
+      useClass: AppValidationPipe,
     },
   ],
 })

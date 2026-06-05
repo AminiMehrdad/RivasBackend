@@ -33,9 +33,10 @@ export class WalletEntity {
   createdAt: Date;
 
   @OneToOne(() => UserEntity, (user) => user.wallets)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'uniqueId' })
   user: UserEntity;
 
   @OneToMany(() => WalletTransactionEntity, (tx) => tx.wallet)
+  @JoinColumn({ name: 'unique_id', referencedColumnName: 'walletId' })
   transactions: WalletTransactionEntity[];
 }

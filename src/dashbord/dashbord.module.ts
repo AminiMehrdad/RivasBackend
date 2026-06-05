@@ -1,10 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthGuard } from '../common/guards/auth.guard';
-import { AuthTokenMiddleware } from '../common/middleware/auth-token.middleware';
 import { INJECTION_TOKENS } from '../common/constants/injection-tokens';
 import { EnvConfig } from '../config/env.schema';
 import { RequestsEntity } from '../database/entities/requests.entity';
@@ -33,16 +30,9 @@ import { TypeOrmDashbordRepository } from './dashbord.repository';
     {
       provide: INJECTION_TOKENS.DASHBORD_REPOSITORY,
       useClass: TypeOrmDashbordRepository,
-    },
-    AuthTokenMiddleware,
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
+    }
   ],
 })
-export class DashboardModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AuthTokenMiddleware).forRoutes('*');
-  }
+export class DashboardModule  {
+
 }

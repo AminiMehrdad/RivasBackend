@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -49,11 +50,14 @@ export class UserEntity {
 
 
   @OneToMany(() => RequestsEntity, (requests) => requests.user)
+  @JoinColumn({ name: 'unique_id', referencedColumnName: 'userId' })
   requests: RequestsEntity[];
 
   @OneToMany(() => ApiKeyEntity, (apikey) => apikey.user)
+  @JoinColumn({ name: 'unique_id', referencedColumnName: 'userId' })
   apikeys: ApiKeyEntity[];
 
   @OneToOne(() => WalletEntity, (wallet) => wallet.user)
+  @JoinColumn({ name: 'unique_id', referencedColumnName: 'userId' })
   wallets: WalletEntity;
 }

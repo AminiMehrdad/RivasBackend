@@ -22,8 +22,8 @@ export class RequestsEntity {
   @Column({ name: 'unique_id', type: 'varchar', unique: true })
   uniqueId: string;
 
-  @Column({ name: 'user_id' })
-  userId: number;
+  @Column({ name: 'user_id', type: 'varchar' })
+  userId: string;
 
   @Column({ type: 'decimal', precision: 18, scale: 4 })
   cost: number;
@@ -31,8 +31,8 @@ export class RequestsEntity {
   @Column({ name: 'module_type', type: 'varchar' })
   moduleType: string;
 
-  @Column({ name: 'module_id' })
-  moduleId: number;
+  @Column({ name: 'module_id', type: 'varchar', unique: true })
+  moduleId: string;
 
   @Column({ type: 'enum', enum: RequestStatus, default: RequestStatus.PROCESSING })
   status: RequestStatus;
@@ -47,13 +47,14 @@ export class RequestsEntity {
   createdAt: Date;
 
   @ManyToOne(() => UserEntity, (user) => user.requests)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'uniqueId' })
   user: UserEntity;
 
-  @OneToOne(() => TranscribeEntity, (Transcribe) => Transcribe.requst)
-  @JoinColumn( {name: "module_id"})
+  @OneToOne(() => TranscribeEntity, (Transcribe) => Transcribe.request)
+  @JoinColumn({ name: 'unique_id', referencedColumnName: 'request_id' })
   Transcribe: TranscribeEntity
 
-  @OneToOne(() => WalletTransactionEntity, (walletTranscription) => walletTranscription.requst)
+  @OneToOne(() => WalletTransactionEntity, (walletTranscription) => walletTranscription.request)
+  @JoinColumn({name:"unique_id", referencedColumnName:"referenceId"})
   walletTranscription:WalletTransactionEntity
 }

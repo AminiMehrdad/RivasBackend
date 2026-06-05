@@ -30,7 +30,7 @@ export class WalletTransactionEntity {
   uniqueId: string;
 
   @Column({ name: 'wallet_id' })
-  walletId: number;
+  walletId: string;
 
   @Column({ type: 'enum', enum: TransactionDirection })
   direction: TransactionDirection;
@@ -52,18 +52,18 @@ export class WalletTransactionEntity {
   })
   referenceType: TransactionReferenceType;
 
-  @Column({ name: 'reference_id', type: 'int', nullable: true })
-  referenceId: number;
+  @Column({ name: 'reference_id', type: 'varchar', nullable: true })
+  referenceId: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @ManyToOne(() => WalletEntity, (wallet) => wallet.transactions)
-  @JoinColumn({ name: 'wallet_id' })
+  @JoinColumn({ name: 'wallet_id', referencedColumnName: 'uniqueId' })
   wallet: WalletEntity;
 
   @OneToOne(() => RequestsEntity, (request) => request.walletTranscription)
-  @JoinColumn({name:"reference_id"})
-  requst: RequestsEntity
+  @JoinColumn({name:"reference_id", referencedColumnName:"uniqueId"})
+  request: RequestsEntity
 
 }

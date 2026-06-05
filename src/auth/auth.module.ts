@@ -1,11 +1,10 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { INJECTION_TOKENS } from '../common/constants/injection-tokens';
 import { AuthGuard } from '../common/guards/auth.guard';
-import { AuthTokenMiddleware } from '../common/middleware/auth-token.middleware';
+
 import { EnvConfig } from '../config/env.schema';
 import { UserEntity } from '../database/entities/user.entity';
 import { AuthController } from './auth.controller';
@@ -30,11 +29,7 @@ import { WalletEntity } from 'src/database/entities/wallet.entity';
   controllers: [AuthController],
   providers: [
     AuthService,
-    AuthTokenMiddleware,
-    {
-      provide: APP_GUARD,
-      useClass: AuthGuard,
-    },
+    // AuthTokenMiddleware,
     {
       provide: INJECTION_TOKENS.USER_REPOSITORY,
       useClass: TypeOrmAuthRepository,
@@ -46,8 +41,8 @@ import { WalletEntity } from 'src/database/entities/wallet.entity';
   ],
   exports: [AuthService],
 })
-export class AuthModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AuthTokenMiddleware).forRoutes('*');
-  }
+export class AuthModule {
+  // configure(consumer: MiddlewareConsumer): void {
+    // consumer.apply(AuthTokenMiddleware).forRoutes('*');
+  // }
 }

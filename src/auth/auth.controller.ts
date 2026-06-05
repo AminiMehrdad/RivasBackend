@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -39,7 +40,11 @@ import {
   VerifyOtpDto,
 } from './auth.dto';
 import { AuthService } from './auth.service';
-import { AuthenticatedRequest } from '../common/middleware/auth-token.middleware';
+import { Public } from 'src/common/decorators/public.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { CookieUtils } from '../common/utils/cockes.utils';
+import { isBtcAddress } from 'class-validator';
+import { AuthenticatedRequest } from 'src/common/guards/auth.guard';
 
 class ErrorSchema {
   @ApiProperty({ example: 401 })
@@ -56,11 +61,14 @@ class ErrorSchema {
 @Controller('auth')
 @UsePipes(AppValidationPipe)
 export class AuthController {
+  private readonly cookieUtils = new CookieUtils();
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
 
+  @Public()
   @Post('request-code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Send a one-time verification code to a phone number.' })
@@ -70,6 +78,7 @@ export class AuthController {
     return this.authService.requestOtp(dto);
   }
 
+  @Public()
   @Post('verify-code')
   @ApiOperation({ summary: 'Verify phone code, create the user if needed, and issue tokens.' })
   @ApiCreatedResponse({ type: AuthResponseDto })
@@ -81,30 +90,15 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponseDto> {
     const result = await this.authService.verifyOtp(dto);
-    this.setRefreshCookie(response, result.tokens.refreshToken);
+
+    this.cookieUtils.setCookie(response, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE, result.tokens.refreshToken, this.cookieUtils.cookieOptions(this.configService));
+    this.cookieUtils.setCookie(response, AUTH_CONSTANTS.ACCESS_TOKEN_COOKIE, result.tokens.accessToken, this.cookieUtils.cookieOptions(this.configService, true));
+    
     return result;
   }
 
-  @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  @ApiCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
-  @ApiOperation({ summary: 'Refresh and rotate access and refresh tokens.' })
-  @ApiOkResponse({ type: RefreshResponseDto })
-  @ApiUnauthorizedResponse({ type: ErrorSchema, description: 'Refresh token is invalid or expired.' })
-  @ApiForbiddenResponse({ type: ErrorSchema, description: 'Authenticated user lacks permission.' })
-  @ApiUnprocessableEntityResponse({ type: ErrorSchema, description: 'Validation failed.' })
-  async refresh(
-    @Body() dto: RefreshTokenDto,
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<RefreshResponseDto> {
-    const refreshToken = dto.refreshToken ?? this.getCookie(request, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE);
-    const result = await this.authService.refresh(refreshToken);
-    this.setRefreshCookie(response, result.tokens.refreshToken);
-    return result;
-  }
-
-  @Post('logout')
+  // @Roles('admin')
+  @Get('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
@@ -114,37 +108,19 @@ export class AuthController {
   @ApiForbiddenResponse({ type: ErrorSchema, description: 'Authenticated user lacks permission.' })
   @ApiBadRequestResponse({ type: ErrorSchema })
   async logout(
-    @Body() dto: LogoutDto,
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: Response,
   ): Promise<LogoutResponseDto> {
-    if (!request.accessToken) {
-      throw new UnauthorizedError();
-    }
+  
+    const refreshToken = this.cookieUtils.getCookie(request, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE);
+    const accessToken = this.cookieUtils.getCookie(request, AUTH_CONSTANTS.ACCESS_TOKEN_COOKIE);
 
-    const refreshToken = dto.refreshToken ?? this.getCookie(request, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE);
-    await this.authService.logout(request.accessToken, refreshToken);
-    response.clearCookie(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE, this.cookieOptions());
+
+    await this.authService.logout(accessToken, refreshToken);
+
+    this.cookieUtils.clearCookie(response, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE, this.cookieUtils.cookieOptions(this.configService));
+    this.cookieUtils.clearCookie(response, AUTH_CONSTANTS.ACCESS_TOKEN_COOKIE, this.cookieUtils.cookieOptions(this.configService, true));
+
     return { success: true };
-  }
-
-  private setRefreshCookie(response: Response, refreshToken: string): void {
-    response.cookie(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE, refreshToken, this.cookieOptions());
-  }
-
-  private cookieOptions() {
-    return {
-      httpOnly: true,
-      secure: this.configService.get('COOKIE_SECURE', { infer: true }),
-      sameSite: this.configService.get('COOKIE_SAME_SITE', { infer: true }),
-      domain: this.configService.get('COOKIE_DOMAIN', { infer: true }) || undefined,
-      maxAge: this.configService.get('REFRESH_TOKEN_TTL_SECONDS', { infer: true }) * 1000,
-      path: '/',
-    } as const;
-  }
-
-  private getCookie(request: Request, name: string): string | undefined {
-    const cookies = request.cookies as Record<string, string | undefined> | undefined;
-    return cookies?.[name];
   }
 }

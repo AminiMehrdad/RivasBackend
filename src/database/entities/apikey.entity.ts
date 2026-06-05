@@ -9,8 +9,11 @@ export class ApiKeyEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ name: 'unique_id', type: 'varchar' })
+  uniqueId: string;
+
   @Column({ name: 'user_id' })
-  userId: number;
+  userId: string;
 
   @Column({ type: 'varchar' })
   name: string;
@@ -28,6 +31,6 @@ export class ApiKeyEntity {
   createdAt: Date;
 
   @ManyToOne(() => UserEntity, (user) => user.apikeys)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'uniqueId' })
   user: UserEntity;
 }

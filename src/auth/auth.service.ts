@@ -27,7 +27,7 @@ interface OtpSession {
 export class AuthService {
   constructor(
     @Inject(INJECTION_TOKENS.USER_REPOSITORY)
-    private readonly userRepository: AuthRepository, 
+    private readonly userRepository: AuthRepository,
     @Inject(INJECTION_TOKENS.REDIS_CLIENT)
     private readonly redisClient: Redis,
     @Inject(INJECTION_TOKENS.SMS_SERVICE)
@@ -63,6 +63,7 @@ export class AuthService {
     const phoneNumber = this.normalizePhoneNumber(dto.phoneNumber);
     const sessionKey = this.getOtpSessionKey(phoneNumber);
     const rawSession = await this.redisClient.get(sessionKey);
+
 
     if (!rawSession) {
       throw new InvalidOtpError();
@@ -122,21 +123,18 @@ export class AuthService {
 
     return {
       tokens,
+      userId: user.uniqueId,
+      role: user.role
     };
   }
 
-  async logout(accessToken: string | undefined, refreshToken: string | undefined): Promise<void> {
-    if (!accessToken) {
-      throw new UnauthorizedError();
-    }
-
+  async logout(accessToken: string | undefined, refreshToken: string| undefined): Promise<void> {
     await this.redisClient.set(
       `${AUTH_CONSTANTS.BLACKLIST_PREFIX}${accessToken}`,
       '1',
       'EX',
       this.configService.get('ACCESS_TOKEN_TTL_SECONDS', { infer: true }),
     );
-
     if (refreshToken) {
       await this.redisClient.del(this.getRefreshSessionKey(refreshToken));
     }
@@ -166,6 +164,10 @@ export class AuthService {
       refreshToken,
       expiresIn: this.configService.get('ACCESS_TOKEN_TTL_SECONDS', { infer: true }),
     };
+  }
+
+  async checkAcessToken(acessToken: string) {
+    return await this.jwtService.verifyAsync<RequestUser>(acessToken);
   }
 
   private parseRefreshSession(rawSession: string): RefreshSession {
