@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import { IsNotEmpty, IsNumber, Min } from "class-validator";
 
 export class TotalCreditResponseDto {
@@ -30,9 +31,21 @@ export class CreditLogsResponseDto {
 }
 
 export class IncreaseWalletDto {
-  @ApiProperty({example: "500000"})
+  @ApiProperty({ example: 500000 })
+  @Type(() => Number)
   @IsNotEmpty({ message: 'Value should not be empty' })
   @IsNumber({}, { message: 'Value must be a number' })
-  @Min(499999, { message: 'Value must be more than 500,000'}) 
+  @Min(500000, { message: 'Value must be at least 500,000'}) 
   value: number;
+}
+
+export class IncreaseWalletResponseDto {
+  @ApiProperty({ example: "request-uuid" })
+  request_id: string;
+
+  @ApiProperty({ example: "wallet-tx-uuid" })
+  transaction_id: string;
+
+  @ApiProperty({ example: 1500000 })
+  balance_after: number;
 }

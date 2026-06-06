@@ -1,9 +1,7 @@
-import { WalletEntity, WalletType } from "../entities/wallet.entity";
 import { DeepPartial, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { randomUUID } from "crypto";
-import { WalletRepository } from "./wallet.repo";
 import { UserEntity } from "../entities/user.entity";
 
 // ── Input DTOs ────────────────────────────────────────────────────────────────

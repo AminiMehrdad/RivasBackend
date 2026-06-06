@@ -20,6 +20,7 @@ import { WalletTransactionEntity } from './entities/walletTransaction.entity';
         username: configService.get('DB_USERNAME', { infer: true }),
         password: configService.get('DB_PASSWORD', { infer: true }),
         database: configService.get('DB_DATABASE', { infer: true }),
+        timezone: '+03:30',
         entities: [
           UserEntity, 
           RequestsEntity,
@@ -33,6 +34,22 @@ import { WalletTransactionEntity } from './entities/walletTransaction.entity';
         logging: configService.get('NODE_ENV', { infer: true }) !== 'production',
       }),
     }),
+  ],
+  providers: [
+    ApiKeyEntity,
+    UserEntity,
+    RequestsEntity,
+    TranscribeEntity,
+    WalletEntity,
+    WalletTransactionEntity
+  ],
+  exports: [
+    ApiKeyEntity,
+    UserEntity,
+    RequestsEntity,
+    TranscribeEntity,
+    WalletEntity,
+    WalletTransactionEntity
   ],
 })
 export class DatabaseModule {}

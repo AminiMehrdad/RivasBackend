@@ -3,7 +3,6 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  JoinColumn,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -41,23 +40,20 @@ export class UserEntity {
   @Column({ name: 'last_seen_at' })
   lastSeenAt: Date;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt: Date;
 
 
 
-  @OneToMany(() => RequestsEntity, (requests) => requests.user)
-  @JoinColumn({ name: 'unique_id', referencedColumnName: 'userId' })
+  @OneToMany(() => RequestsEntity, (request) => request.user)
   requests: RequestsEntity[];
 
   @OneToMany(() => ApiKeyEntity, (apikey) => apikey.user)
-  @JoinColumn({ name: 'unique_id', referencedColumnName: 'userId' })
   apikeys: ApiKeyEntity[];
 
   @OneToOne(() => WalletEntity, (wallet) => wallet.user)
-  @JoinColumn({ name: 'unique_id', referencedColumnName: 'userId' })
-  wallets: WalletEntity;
+  wallet: WalletEntity;
 }

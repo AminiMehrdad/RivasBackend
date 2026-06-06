@@ -26,6 +26,7 @@ export interface WalletTransactionRepository {
   createTransaction(input: CreateWalletTransactionInput): Promise<WalletTransactionEntity>;
   getTransactionsByWalletId(walletId: string): Promise<WalletTransactionEntity[]>;
   getTransactionById(uniqueId: string): Promise<WalletTransactionEntity | null>;
+  getTransactionsByUserId(userId: string): Promise<WalletTransactionEntity[] | null>;
   getAllTransactions(): Promise<WalletTransactionEntity[]>;
   updateTransaction(uniqueId: string, data: Partial<WalletTransactionEntity>): Promise<WalletTransactionEntity>;
   deleteTransaction(uniqueId: string): Promise<void>;
@@ -70,6 +71,14 @@ export class TypeOrmWalletTransactionRepository implements WalletTransactionRepo
       where: { uniqueId },
       relations: { request: true, wallet: true },
     });
+  }
+
+  async getTransactionsByUserId(userId: string): Promise<WalletTransactionEntity[] | null> {
+    return this.repository.createQueryBuilder('transaction')
+      .innerJoinAndSelect('transaction.wallet', 'wallet', 'wallet.uniqueId = transaction.walletId')
+      .where('wallet.userId = :userId', { userId })
+      .orderBy('transaction.createdAt', 'DESC')
+      .getMany();
   }
 
   // READ — all

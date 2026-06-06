@@ -8,5 +8,5 @@ export class TodayInfoResponseDto {
     time: string
 
     @ApiProperty({ example: 100})
-    requsts:number
+    requests:number
 }

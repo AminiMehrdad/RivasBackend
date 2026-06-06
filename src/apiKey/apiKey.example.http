@@ -1,0 +1,26 @@
+ ### Example requests for API Key endpoints
+ 
+ ### 1. Generate a new API key
+ POST http://localhost:3000/api-keys
+ Content-Type: application/json
+ Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+ X-Refresh-Token: YOUR_REFRESH_TOKEN_HERE
+ 
+ {
+   "name": "Production API Key",
+   "expiresInDays": 90
+ }
+ 
+ ### 2. List all API keys for authenticated user
+ GET http://localhost:3000/api-keys
+ Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+ X-Refresh-Token: YOUR_REFRESH_TOKEN_HERE
+ 
+ ### 3. Revoke an API key
+ DELETE http://localhost:3000/api-keys/UNIQUE_ID_HERE
+ Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+ X-Refresh-Token: YOUR_REFRESH_TOKEN_HERE
+ 
+ ### 4. Use API key to access protected endpoint (example)
+ GET http://localhost:3000/protected/resource
+ X-API-Key: sk_live_YOUR_API_KEY_HERE

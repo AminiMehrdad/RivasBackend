@@ -26,7 +26,7 @@ export class WalletTransactionEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'unique_id', type: 'varchar' })
+  @Column({ name: 'unique_id', type: 'varchar', unique: true })
   uniqueId: string;
 
   @Column({ name: 'wallet_id' })
@@ -55,14 +55,14 @@ export class WalletTransactionEntity {
   @Column({ name: 'reference_id', type: 'varchar', nullable: true })
   referenceId: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;
 
   @ManyToOne(() => WalletEntity, (wallet) => wallet.transactions)
   @JoinColumn({ name: 'wallet_id', referencedColumnName: 'uniqueId' })
   wallet: WalletEntity;
 
-  @OneToOne(() => RequestsEntity, (request) => request.walletTranscription)
+  @OneToOne(() => RequestsEntity, (request) => request.walletTransaction)
   @JoinColumn({name:"reference_id", referencedColumnName:"uniqueId"})
   request: RequestsEntity
 

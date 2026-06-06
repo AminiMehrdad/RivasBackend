@@ -9,10 +9,11 @@ import { AppConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './redis/redis.module';
 import { DashboardModule } from './dashbord/dashbord.module';
-// import { WalletModule } from './wallet/wallet.module';
+import { WalletModule } from './wallet/wallet.module';
 import { AuthGuard } from './common/guards/auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { LoggingInterceptor } from './common/Interceptors/logging.interceptor';
+ import { ApiKeyModule } from './apiKey/apiKey.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { LoggingInterceptor } from './common/Interceptors/logging.interceptor';
     RedisModule,
     AuthModule,
     DashboardModule,
-    // WalletModule
+     WalletModule,
+     ApiKeyModule
   ],
   providers: [
     {

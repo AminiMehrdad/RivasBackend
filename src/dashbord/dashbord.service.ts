@@ -1,28 +1,31 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { INJECTION_TOKENS } from '../common/constants/injection-tokens';
+import { RequestRepository } from '../database/Repos/requests.repo';
+import { TranscribeRepository } from '../database/Repos/transcribe.repo';
 import { TodayInfoResponseDto } from './dashbord.dto';
-import { DashbordRepository } from './dashbord.repository';
 
 @Injectable()
 export class DashbordService {
   constructor(
-    @Inject(INJECTION_TOKENS.DASHBORD_REPOSITORY)
-    private readonly dashbordRepository: DashbordRepository,
+    @Inject(INJECTION_TOKENS.REQUEST_REPOSITORY)
+    private readonly requestRepository: RequestRepository,
+    @Inject(INJECTION_TOKENS.TRANSCRIBE_REPOSITORY)
+    private readonly transcribeRepository: TranscribeRepository,
   ) {}
 
   async todayInfo(userId: string): Promise<TodayInfoResponseDto> {
     const [costs, totalDurationSeconds, requests] = await Promise.all([
-      this.dashbordRepository.getTodayCostByUserId(userId),
-      this.dashbordRepository.getTodayDurationByUserId(userId),
-      this.dashbordRepository.getTodayRequestsCountByUserId(userId),
+      this.requestRepository.getTodayCostByUserId(userId),
+      this.transcribeRepository.getTodayDurationByUserId(userId),
+      this.requestRepository.getTodayRequestsCountByUserId(userId),
     ]);
 
     const time = this.formatDuration(totalDurationSeconds);
 
     return {
-      costs: Math.round(costs * 100) / 100,
+      costs,
       time,
-      requsts: requests,
+      requests,
     };
   }
 

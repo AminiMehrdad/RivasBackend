@@ -12,8 +12,8 @@ export interface CreateRequestInput {
     moduleType: string;
     moduleId: number;
     status: RequestStatus;
-    succeedAt?: Date;
-    failedAt?: Date;
+    succeedAt?: Date | null;
+    failedAt?: Date | null;
 }
 
 // ── Contract interface ────────────────────────────────────────────────────────
@@ -22,6 +22,8 @@ export interface RequestRepository {
     createRequest(input: CreateRequestInput): Promise<RequestsEntity>;
     getRequestById(uniqueId: string): Promise<RequestsEntity | null>;
     getRequestsByUserId(userId: string): Promise<RequestsEntity[]>;
+    getTodayCostByUserId(userId: string): Promise<number>;
+    getTodayRequestsCountByUserId(userId: string): Promise<number>;
     getAllRequests(): Promise<RequestsEntity[]>;
     updateRequest(uniqueId: string, data: Partial<RequestsEntity>): Promise<RequestsEntity>;
     deleteRequest(uniqueId: string): Promise<void>;
@@ -65,6 +67,31 @@ export class TypeOrmRequestRepository implements RequestRepository {
         });
     }
 
+    async getTodayCostByUserId(userId: string): Promise<number> {
+        const { startOfDay, endOfDay } = this.getTodayRange();
+
+        const result = await this.repository
+            .createQueryBuilder('requests')
+            .select('SUM(requests.cost)', 'totalCost')
+            .where('requests.userId = :userId', { userId })
+            .andWhere('requests.createdAt >= :startOfDay', { startOfDay })
+            .andWhere('requests.createdAt <= :endOfDay', { endOfDay })
+            .getRawOne<{ totalCost: string | null }>();
+
+        return Number(result?.totalCost || 0);
+    }
+
+    async getTodayRequestsCountByUserId(userId: string): Promise<number> {
+        const { startOfDay, endOfDay } = this.getTodayRange();
+
+        return this.repository
+            .createQueryBuilder('requests')
+            .where('requests.userId = :userId', { userId })
+            .andWhere('requests.createdAt >= :startOfDay', { startOfDay })
+            .andWhere('requests.createdAt <= :endOfDay', { endOfDay })
+            .getCount();
+    }
+
     async getAllRequests(): Promise<RequestsEntity[]> {
         return this.repository.find();
     }
@@ -93,5 +120,15 @@ export class TypeOrmRequestRepository implements RequestRepository {
         }
 
         await this.repository.remove(existing);
+    }
+
+    private getTodayRange(): { startOfDay: Date; endOfDay: Date } {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        return { startOfDay, endOfDay };
     }
 }

@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, ManyToOne, OneToMany, JoinColumn,
+  CreateDateColumn, OneToMany, JoinColumn,
   Index,
   OneToOne,
 } from 'typeorm';
@@ -29,14 +29,13 @@ export class WalletEntity {
   @Column({ type: 'decimal', precision: 18, scale: 4, default: 0 })
   balance: number;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;
 
-  @OneToOne(() => UserEntity, (user) => user.wallets)
+  @OneToOne(() => UserEntity, (user) => user.wallet)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'uniqueId' })
   user: UserEntity;
 
   @OneToMany(() => WalletTransactionEntity, (tx) => tx.wallet)
-  @JoinColumn({ name: 'unique_id', referencedColumnName: 'walletId' })
   transactions: WalletTransactionEntity[];
 }

@@ -1,23 +1,23 @@
-import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { APP_GUARD } from "@nestjs/core";
 import { JwtModule } from "@nestjs/jwt";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { INJECTION_TOKENS } from "src/common/constants/injection-tokens";
-import { AuthGuard } from "src/common/guards/auth.guard";
-import { AuthTokenMiddleware } from "src/common/middleware/auth-token.middleware";
 import { EnvConfig } from "src/config/env.schema";
+import { RequestsEntity } from "src/database/entities/requests.entity";
 import { UserEntity } from "src/database/entities/user.entity";
 import { WalletEntity } from "src/database/entities/wallet.entity";
 import { WalletTransactionEntity } from "src/database/entities/walletTransaction.entity";
 import { WalletController } from "./wallet.controller";
 import { WalletService } from "./wallet.service";
-import { TypeOrmWalletRepository } from "./wallet.repository";
+import { TypeOrmRequestRepository } from "src/database/Repos/requests.repo";
+import { TypeOrmWalletRepository } from "src/database/Repos/wallet.repo";
+import { TypeOrmWalletTransactionRepository } from "src/database/Repos/walletTransaction.repo";
 
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([UserEntity, WalletEntity, WalletTransactionEntity]),
+        TypeOrmModule.forFeature([UserEntity, RequestsEntity, WalletEntity, WalletTransactionEntity]),
         JwtModule.registerAsync({
             inject: [ConfigService],
             useFactory: (configService: ConfigService<EnvConfig, true>) => ({
@@ -35,15 +35,14 @@ import { TypeOrmWalletRepository } from "./wallet.repository";
             provide: INJECTION_TOKENS.WALLET_REPOSITORY,
             useClass: TypeOrmWalletRepository,
         },
-        AuthTokenMiddleware,
         {
-            provide: APP_GUARD,
-            useClass: AuthGuard,
+            provide: INJECTION_TOKENS.REQUEST_REPOSITORY,
+            useClass: TypeOrmRequestRepository,
+        },
+        {
+            provide: INJECTION_TOKENS.WALLET_TRANSACTION_REPOSITORY,
+            useClass: TypeOrmWalletTransactionRepository,
         },
     ],
 })
-export class WalletModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AuthTokenMiddleware).forRoutes('*');
-  }
-}
+export class WalletModule {}

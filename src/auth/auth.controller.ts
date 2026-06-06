@@ -14,7 +14,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiForbiddenResponse,
-  ApiCookieAuth,
+   ApiHeader,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -42,7 +42,7 @@ import {
 import { AuthService } from './auth.service';
 import { Public } from 'src/common/decorators/public.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { CookieUtils } from '../common/utils/cockes.utils';
+ import { HeaderUtils } from '../common/utils/header.utils';
 import { isBtcAddress } from 'class-validator';
 import { AuthenticatedRequest } from 'src/common/guards/auth.guard';
 
@@ -61,7 +61,7 @@ class ErrorSchema {
 @Controller('auth')
 @UsePipes(AppValidationPipe)
 export class AuthController {
-  private readonly cookieUtils = new CookieUtils();
+   private readonly headerUtils = new HeaderUtils();
 
   constructor(
     private readonly authService: AuthService,
@@ -91,8 +91,7 @@ export class AuthController {
   ): Promise<AuthResponseDto> {
     const result = await this.authService.verifyOtp(dto);
 
-    this.cookieUtils.setCookie(response, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE, result.tokens.refreshToken, this.cookieUtils.cookieOptions(this.configService));
-    this.cookieUtils.setCookie(response, AUTH_CONSTANTS.ACCESS_TOKEN_COOKIE, result.tokens.accessToken, this.cookieUtils.cookieOptions(this.configService, true));
+     this.headerUtils.setTokenHeaders(response, result.tokens.accessToken, result.tokens.refreshToken);
     
     return result;
   }
@@ -101,7 +100,7 @@ export class AuthController {
   @Get('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
+   @ApiHeader({ name: 'X-Refresh-Token', description: 'Refresh token', required: true })
   @ApiOperation({ summary: 'Logout by blacklisting access token and revoking refresh token.' })
   @ApiOkResponse({ type: LogoutResponseDto })
   @ApiUnauthorizedResponse({ type: ErrorSchema, description: 'Authentication is required.' })
@@ -112,14 +111,13 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<LogoutResponseDto> {
   
-    const refreshToken = this.cookieUtils.getCookie(request, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE);
-    const accessToken = this.cookieUtils.getCookie(request, AUTH_CONSTANTS.ACCESS_TOKEN_COOKIE);
+     const refreshToken = this.headerUtils.getRefreshToken(request);
+     const accessToken = this.headerUtils.getAccessToken(request);
 
 
     await this.authService.logout(accessToken, refreshToken);
 
-    this.cookieUtils.clearCookie(response, AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE, this.cookieUtils.cookieOptions(this.configService));
-    this.cookieUtils.clearCookie(response, AUTH_CONSTANTS.ACCESS_TOKEN_COOKIE, this.cookieUtils.cookieOptions(this.configService, true));
+     this.headerUtils.clearTokenHeaders(response);
 
     return { success: true };
   }

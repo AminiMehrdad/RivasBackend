@@ -46,11 +46,11 @@ export class TypeOrmAuthRepository implements AuthRepository {
   }
 
   async update(uniqueId: string, data: Partial<UserEntity>): Promise<void> {
-    await this.repository.update(uniqueId, data);
+    await this.repository.update({ uniqueId }, data);
   }
 
   async createWallet(userId: string): Promise<void> {
-    const user = await this.repository.findOne({ where: { id: userId } });
+    const user = await this.repository.findOne({ where: { uniqueId: userId } });
 
     if (!user) {
       throw new Error(`User with Id ${userId} not found.`);
@@ -58,6 +58,7 @@ export class TypeOrmAuthRepository implements AuthRepository {
 
     const wallet = this.wallteRepo.create({
       uniqueId: randomUUID(),
+      userId: user.uniqueId,
       user: user,
       balance: 0,
       type: WalletType.MAIN,

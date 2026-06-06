@@ -25,7 +25,7 @@ export class TranscribeEntity {
   @Column({ name: 'request_id', type: 'varchar' })
   requestId: string;
 
-  @OneToOne(() => RequestsEntity, (request) => request.Transcribe)
-  @JoinColumn({ name: 'request_id', referencedColumnName: 'unique_id' })
+  @OneToOne(() => RequestsEntity, (request) => request.transcribe)
+  @JoinColumn({ name: 'request_id', referencedColumnName: 'uniqueId' })
   request: RequestsEntity;
 }

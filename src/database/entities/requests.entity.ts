@@ -5,7 +5,6 @@ import {
 } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { TranscribeEntity } from './transcribe.entity';
-import { transcode } from 'buffer';
 import { WalletTransactionEntity } from './walletTransaction.entity';
 
 export enum RequestStatus {
@@ -31,30 +30,34 @@ export class RequestsEntity {
   @Column({ name: 'module_type', type: 'varchar' })
   moduleType: string;
 
-  @Column({ name: 'module_id', type: 'varchar', unique: true })
-  moduleId: string;
+  @Column({ name: 'module_id', type: 'decimal' })
+  moduleId: number;
 
   @Column({ type: 'enum', enum: RequestStatus, default: RequestStatus.PROCESSING })
   status: RequestStatus;
 
-  @Column({ name: 'succeed_at', type: 'timestamp', nullable: true })
-  succeedAt: Date;
+  @Column({ name: 'succeed_at', type: 'datetime', nullable: true })
+  succeedAt: Date | null;
 
-  @Column({ name: 'failed_at', type: 'timestamp', nullable: true })
-  failedAt: Date;
+  @Column({ name: 'failed_at', type: 'datetime', nullable: true })
+  failedAt: Date | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;
+
+  @Column({ name: 'transcribe_id', type: 'varchar', nullable: true })
+  transcribeId: string | null;
+
+  @Column({ name: 'wallet_transcription_id', type: 'varchar', nullable: true })
+  walletTranscriptionId: string | null;
 
   @ManyToOne(() => UserEntity, (user) => user.requests)
   @JoinColumn({ name: 'user_id', referencedColumnName: 'uniqueId' })
   user: UserEntity;
 
-  @OneToOne(() => TranscribeEntity, (Transcribe) => Transcribe.request)
-  @JoinColumn({ name: 'unique_id', referencedColumnName: 'request_id' })
-  Transcribe: TranscribeEntity
+  @OneToOne(() => TranscribeEntity, (transcribe) => transcribe.request)
+  transcribe: TranscribeEntity;
 
-  @OneToOne(() => WalletTransactionEntity, (walletTranscription) => walletTranscription.request)
-  @JoinColumn({name:"unique_id", referencedColumnName:"referenceId"})
-  walletTranscription:WalletTransactionEntity
+  @OneToOne(() => WalletTransactionEntity, (walletTransaction) => walletTransaction.request)
+  walletTransaction: WalletTransactionEntity;
 }

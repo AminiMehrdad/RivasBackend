@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -9,7 +9,8 @@ import { TranscribeEntity } from '../database/entities/transcribe.entity';
 import { UserEntity } from '../database/entities/user.entity';
 import { DashbordService } from './dashbord.service';
 import { DashbordController } from './dashbord.controller';
-import { TypeOrmDashbordRepository } from './dashbord.repository';
+import { TypeOrmRequestRepository } from '../database/Repos/requests.repo';
+import { TypeOrmTranscribeRepository } from '../database/Repos/transcribe.repo';
 
 @Module({
   imports: [
@@ -28,11 +29,13 @@ import { TypeOrmDashbordRepository } from './dashbord.repository';
   providers: [
     DashbordService,
     {
-      provide: INJECTION_TOKENS.DASHBORD_REPOSITORY,
-      useClass: TypeOrmDashbordRepository,
-    }
+      provide: INJECTION_TOKENS.REQUEST_REPOSITORY,
+      useClass: TypeOrmRequestRepository,
+    },
+    {
+      provide: INJECTION_TOKENS.TRANSCRIBE_REPOSITORY,
+      useClass: TypeOrmTranscribeRepository,
+    },
   ],
 })
-export class DashboardModule  {
-
-}
+export class DashboardModule {}

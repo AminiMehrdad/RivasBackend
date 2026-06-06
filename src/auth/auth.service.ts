@@ -83,7 +83,7 @@ export class AuthService {
         phoneNumber
       })
 
-      await this.userRepository.createWallet(user.id)
+      await this.userRepository.createWallet(user.uniqueId)
 
     }
 

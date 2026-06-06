@@ -1,13 +1,12 @@
-import { Controller, Get, HttpCode, HttpStatus, Req, UsePipes } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UsePipes } from "@nestjs/common";
 import { ApiBadRequestResponse, ApiBearerAuth, ApiCookieAuth, ApiForbiddenResponse, ApiOkResponse, ApiOperation, ApiProperty, ApiTags, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { AUTH_CONSTANTS } from "src/common/constants/auth.constants";
-import { CurrentUser } from "src/common/decorators/current-user.decorator";
 import { ErrorCode } from "src/common/errors/error-code.enum";
 import { AppValidationPipe } from "src/common/pipes/validation.pipe";
-import { CreditLogsResponseDto, TotalCreditResponseDto } from "./wallet.dto";
+import { CreditLogsResponseDto, IncreaseWalletDto, IncreaseWalletResponseDto, TotalCreditResponseDto } from "./wallet.dto";
 import { WalletService } from "./wallet.service";
-import { AuthenticatedRequest } from "src/common/middleware/auth-token.middleware";
 import { UnauthorizedError } from "src/common/errors/auth.errors";
+import { AuthenticatedRequest } from "src/common/guards/auth.guard";
 
 class ErrorSchema {
     @ApiProperty({ example: 401 })
@@ -44,14 +43,14 @@ export class WalletController {
     })
     @ApiBadRequestResponse({ type: ErrorSchema })
     async totalCredit(
-        @CurrentUser() user: { id: string },
         @Req() request: AuthenticatedRequest,
     ): Promise<TotalCreditResponseDto> {
-        if (!request.accessToken) {
+        const userId = request.user?.userId;
+        if (!userId) {
             throw new UnauthorizedError();
         }
-
-        return this.walletService.totalCredit(user.id);
+        
+        return this.walletService.totalCredit(userId);
     }
 
     @Get('log-credit')
@@ -70,15 +69,41 @@ export class WalletController {
     })
     @ApiBadRequestResponse({ type: ErrorSchema })
     async logCredit(
-        @CurrentUser() user: { id: string },
         @Req() request: AuthenticatedRequest,
     ): Promise<CreditLogsResponseDto> {
-        if (!request.accessToken) {
+        const userId = request.user?.userId;
+        if (!userId) {
             throw new UnauthorizedError();
         }
 
-        return this.walletService.logCredits(user.id);
+        return this.walletService.logCredits(userId);
     }
 
+    @Post('increase-wallet')
+    @HttpCode(HttpStatus.OK)
+    @ApiBearerAuth()
+    @ApiCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
+    @ApiOperation({ summary: 'Increase wallet balance.' })
+    @ApiOkResponse({ type: IncreaseWalletResponseDto })
+    @ApiUnauthorizedResponse({
+        type: ErrorSchema,
+        description: 'Authentication is required.',
+    })
+    @ApiForbiddenResponse({
+        type: ErrorSchema,
+        description: 'Authenticated user lacks permission.',
+    })
+    @ApiBadRequestResponse({ type: ErrorSchema })
+    async increaseWallet(
+        @Body() dto: IncreaseWalletDto,
+        @Req() request: AuthenticatedRequest,
+    ): Promise<IncreaseWalletResponseDto> {
+        const userId = request.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedError();
+        }
+
+        return this.walletService.increaseWallet(userId, dto.value);
+    }
 
 }

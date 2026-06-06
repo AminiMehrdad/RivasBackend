@@ -29,7 +29,6 @@ async function bootstrap(): Promise<void> {
   );
   app.use(cookieParser());
   app.useGlobalPipes(new AppValidationPipe());
-  app.useGlobalFilters(new HttpExceptionFilter());
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Authentication Service')

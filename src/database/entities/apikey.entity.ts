@@ -27,7 +27,7 @@ export class ApiKeyEntity {
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt: Date;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt: Date;
 
   @ManyToOne(() => UserEntity, (user) => user.apikeys)

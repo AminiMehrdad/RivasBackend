@@ -18,6 +18,7 @@ export interface CreateTranscribeInput {
 export interface TranscribeRepository {
     createTranscribe(input: CreateTranscribeInput): Promise<TranscribeEntity>;
     getTranscribeById(uniqueId: string): Promise<TranscribeEntity | null>;
+    getTodayDurationByUserId(userId: string): Promise<number>;
     getAllTranscribes(): Promise<TranscribeEntity[]>;
     updateTranscribe(uniqueId: string, data: Partial<TranscribeEntity>): Promise<TranscribeEntity>;
     deleteTranscribe(uniqueId: string): Promise<void>;
@@ -52,6 +53,21 @@ export class TypeOrmTranscribeRepository implements TranscribeRepository {
         });
     }
 
+    async getTodayDurationByUserId(userId: string): Promise<number> {
+        const { startOfDay, endOfDay } = this.getTodayRange();
+
+        const result = await this.repository
+            .createQueryBuilder('transcribes')
+            .innerJoin('transcribes.request', 'requests')
+            .select('SUM(transcribes.duration)', 'totalDuration')
+            .where('requests.userId = :userId', { userId })
+            .andWhere('requests.createdAt >= :startOfDay', { startOfDay })
+            .andWhere('requests.createdAt <= :endOfDay', { endOfDay })
+            .getRawOne<{ totalDuration: string | null }>();
+
+        return Number(result?.totalDuration || 0);
+    }
+
     async getAllTranscribes(): Promise<TranscribeEntity[]> {
         return this.repository.find();
     }
@@ -81,6 +97,16 @@ export class TypeOrmTranscribeRepository implements TranscribeRepository {
         }
 
         await this.repository.remove(existing);
+    }
+
+    private getTodayRange(): { startOfDay: Date; endOfDay: Date } {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        return { startOfDay, endOfDay };
     }
 }
 

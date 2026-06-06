@@ -8,7 +8,6 @@ import { randomUUID } from "crypto";
 
 export interface CreateWalletInput {
     userId: string;
-    requestId: string;
     type: WalletType;
     balance: number;
 }
@@ -18,6 +17,7 @@ export interface CreateWalletInput {
 export interface WalletRepository {
     createWallet(input: CreateWalletInput): Promise<WalletEntity>;
     getWalletByUserId(userId: string): Promise<WalletEntity[]>;
+    getMainWalletByUserId(userId: string): Promise<WalletEntity | null>;
     getWalletById(uniqueId: string): Promise<WalletEntity | null>;
     getAllWallets(): Promise<WalletEntity[]>;
     updateWallet(uniqueId: string, data: Partial<WalletEntity>): Promise<WalletEntity>;
@@ -38,7 +38,6 @@ export class TypeOrmWalletRepository implements WalletRepository {
         const wallet = this.repository.create({
             uniqueId: randomUUID(),
             userId: input.userId,
-            requestId: input.requestId,
             type: input.type,
             balance: input.balance,
         } as DeepPartial<WalletEntity>);
@@ -50,6 +49,12 @@ export class TypeOrmWalletRepository implements WalletRepository {
     async getWalletByUserId(userId: string): Promise<WalletEntity[]> {
         return this.repository.find({
             where: { userId },
+        });
+    }
+
+    async getMainWalletByUserId(userId: string): Promise<WalletEntity | null> {
+        return this.repository.findOne({
+            where: { userId, type: WalletType.MAIN },
         });
     }
 
