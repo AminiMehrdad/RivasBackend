@@ -15,6 +15,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { LoggingInterceptor } from './common/Interceptors/logging.interceptor';
 import { ApiKeyModule } from './apiKey/apiKey.module';
 import { TranscriptionModule } from './Transcription/transcription.module';
+import { IdcardModule } from './idcard/idcard.module';
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { TranscriptionModule } from './Transcription/transcription.module';
     DashboardModule,
     WalletModule,
     ApiKeyModule,
-    TranscriptionModule
+    TranscriptionModule,
+    IdcardModule
   ],
   providers: [
     {

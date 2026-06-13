@@ -138,6 +138,7 @@ describe('AuthGuard', () => {
       },
     });
 
+
     await expect(guard.canActivate(createContext(request, response))).resolves.toBe(true);
     expect(authService.refresh).toHaveBeenCalledWith('refresh-token');
     expect(request.user).toEqual({

@@ -6,11 +6,17 @@ import {
 import { UserEntity } from './user.entity';
 import { TranscribeEntity } from './transcribe.entity';
 import { WalletTransactionEntity } from './walletTransaction.entity';
+import { IdValidationEntity } from './idValidation.entity';
 
 export enum RequestStatus {
   PROCESSING = 'PROCESSING',
   FAILED     = 'FAILED',
   SUCCEED    = 'SUCCEED',
+}
+
+export enum ModuleType {
+  TRANSCRIPTION = 'TRANSCRIPTION',
+  ID_VALIDATION = 'ID_VALIDATION',
 }
 
 @Entity('requests')
@@ -27,8 +33,8 @@ export class RequestsEntity {
   @Column({ type: 'decimal', precision: 18, scale: 4 })
   cost: number;
 
-  @Column({ name: 'module_type', type: 'varchar' })
-  moduleType: string;
+  @Column({ type: 'enum', enum: ModuleType })
+  moduleType: ModuleType;
 
   @Column({ name: 'module_id', type: 'decimal' })
   moduleId: number;
@@ -56,8 +62,15 @@ export class RequestsEntity {
   user: UserEntity;
 
   @OneToOne(() => TranscribeEntity, (transcribe) => transcribe.request)
+  @JoinColumn({ name: 'module_id', referencedColumnName: 'uniqueId' })
   transcribe: TranscribeEntity;
 
   @OneToOne(() => WalletTransactionEntity, (walletTransaction) => walletTransaction.request)
   walletTransaction: WalletTransactionEntity;
+
+  @OneToOne(() => IdValidationEntity, (idValidation) => idValidation.request)
+  @JoinColumn({ name: 'module_id', referencedColumnName: 'uniqueId' })
+  idValidation: IdValidationEntity;
+
+
 }
