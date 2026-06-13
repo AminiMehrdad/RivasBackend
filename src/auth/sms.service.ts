@@ -24,14 +24,17 @@ export class HttpSmsService implements SmsService {
       return;
     }
 
+
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: this.createHeaders(),
       body: JSON.stringify({
-        to: phoneNumber,
-        message: `Your verification code is ${code}`,
-        code,
-        sender: this.configService.get('SMS_SENDER', { infer: true }) || undefined,
+        "mobile": phoneNumber,
+        // "templateId": 559904,
+        "parameters": [
+          { name: 'کد یک بار مصرف شما:', value: code }
+        ],
       }),
     });
 
@@ -46,12 +49,9 @@ export class HttpSmsService implements SmsService {
     const apiKey = this.configService.get('SMS_API_KEY', { infer: true });
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Accept': 'text/plain',
+      'x-api-key': apiKey || '',
     };
-
-    if (apiKey) {
-      headers.Authorization = `Bearer ${apiKey}`;
-    }
-
     return headers;
   }
 

@@ -27,7 +27,7 @@ import { WalletTransactionEntity } from './entities/walletTransaction.entity';
           ApiKeyEntity,
           TranscribeEntity,
           WalletEntity,
-          WalletTransactionEntity
+          WalletTransactionEntity,
         ],
         // synchronize: configService.get('DB_SYNCHRONIZE', { infer: true }),
         synchronize: true,

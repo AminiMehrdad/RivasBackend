@@ -14,6 +14,8 @@ export interface CreateRequestInput {
     status: RequestStatus;
     succeedAt?: Date | null;
     failedAt?: Date | null;
+    transcribeId?: string | null;
+    walletTranscriptionId?: string | null;
 }
 
 // ── Contract interface ────────────────────────────────────────────────────────
@@ -49,6 +51,8 @@ export class TypeOrmRequestRepository implements RequestRepository {
             status: input.status,
             succeedAt: input.succeedAt,
             failedAt: input.failedAt,
+            transcribeId: input.transcribeId,
+            walletTranscriptionId: input.walletTranscriptionId,
         } as DeepPartial<RequestsEntity>);
 
         return this.repository.save(request);

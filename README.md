@@ -45,6 +45,32 @@ If you already created an older database schema, reset local Docker data with `d
 - `POST /auth/verify-code` verifies the code, creates the user if needed, and logs in.
 - `POST /auth/refresh` validates and rotates refresh tokens.
 - `POST /auth/logout` blacklists the current access token and revokes the refresh token.
+- `POST /api-keys` creates an API key for the authenticated user.
+- `POST /transcriptions` uploads an audio file for transcription. It accepts either JWT auth or `X-API-Key`.
+
+## API Key Transcription Flow
+
+Create an API key with a logged-in user:
+
+```bash
+curl -X POST http://localhost:3000/api-keys \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "X-Refresh-Token: <refreshToken>" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\":\"Transcription client\"}"
+```
+
+Use the returned `apiKey` to upload audio:
+
+```bash
+curl -X POST http://localhost:3000/transcriptions \
+  -H "X-API-Key: <apiKey>" \
+  -F "audio=@./voice.mp3"
+```
+
+The upload field must be named `audio`. Supported audio types are configured in `src/Transcription/transcription.multer.ts`.
+
+In protected controllers, use `req.user.userId`. The global auth guard fills this value for both JWT and API-key requests. If you need API-key metadata, read `req.apiKey`.
 
 ## Protecting Future Routes
 

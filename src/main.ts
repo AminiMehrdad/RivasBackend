@@ -6,7 +6,6 @@ import { Request, Response } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AUTH_CONSTANTS } from './common/constants/auth.constants';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AppValidationPipe } from './common/pipes/validation.pipe';
 import { EnvConfig } from './config/env.schema';
 
@@ -35,7 +34,16 @@ async function bootstrap(): Promise<void> {
     .setDescription('Authentication API using MySQL, Redis, Argon2, and JWT.')
     .setVersion('1.0.0')
     .addBearerAuth()
-    .addCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
+    .addApiKey(
+  {
+    type: 'apiKey',
+    in: 'header',
+    name: AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE,
+    description: 'JWT refresh token',
+  },
+  AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE,
+)
+    // .addCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('swagger', app, document);

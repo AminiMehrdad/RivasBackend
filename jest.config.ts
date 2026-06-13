@@ -7,6 +7,9 @@ const config: Config = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
+  moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/src/$1',
+  },
   collectCoverageFrom: ['src/**/*.ts', '!src/main.ts'],
   coverageDirectory: 'coverage',
   coverageThreshold: {

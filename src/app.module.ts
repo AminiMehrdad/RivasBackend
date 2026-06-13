@@ -13,7 +13,8 @@ import { WalletModule } from './wallet/wallet.module';
 import { AuthGuard } from './common/guards/auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { LoggingInterceptor } from './common/Interceptors/logging.interceptor';
- import { ApiKeyModule } from './apiKey/apiKey.module';
+import { ApiKeyModule } from './apiKey/apiKey.module';
+import { TranscriptionModule } from './Transcription/transcription.module';
 
 @Module({
   imports: [
@@ -28,8 +29,9 @@ import { LoggingInterceptor } from './common/Interceptors/logging.interceptor';
     RedisModule,
     AuthModule,
     DashboardModule,
-     WalletModule,
-     ApiKeyModule
+    WalletModule,
+    ApiKeyModule,
+    TranscriptionModule
   ],
   providers: [
     {
@@ -54,4 +56,4 @@ import { LoggingInterceptor } from './common/Interceptors/logging.interceptor';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

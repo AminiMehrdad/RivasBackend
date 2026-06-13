@@ -21,7 +21,6 @@
          response.setHeader('X-Refresh-Token', refreshToken);
      }
  
-
      clearTokenHeaders(response: any) {
          response.setHeader('X-Access-Token', '');
          response.setHeader('X-Refresh-Token', '');

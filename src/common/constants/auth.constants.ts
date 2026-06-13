@@ -1,7 +1,7 @@
 export const AUTH_CONSTANTS = {
    // Legacy cookie names (deprecated - use headers instead)
   ACCESS_TOKEN_COOKIE: 'accessToken',
-  REFRESH_TOKEN_COOKIE: 'refreshToken',
+  REFRESH_TOKEN_COOKIE: 'x-refresh-token',
    // Header names for token-based authentication
    ACCESS_TOKEN_HEADER: 'Authorization',
    REFRESH_TOKEN_HEADER: 'X-Refresh-Token',
