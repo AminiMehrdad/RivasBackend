@@ -8,6 +8,8 @@ import { ApiKeyEntity } from './entities/apikey.entity';
 import { TranscribeEntity } from './entities/transcribe.entity';
 import { WalletEntity } from './entities/wallet.entity';
 import { WalletTransactionEntity } from './entities/walletTransaction.entity';
+import { IdValidationEntity } from './entities/idValidation.entity';
+import { IdCardRecordEntity } from './entities/idCardRecords.entity';
 
 @Module({
   imports: [
@@ -22,16 +24,18 @@ import { WalletTransactionEntity } from './entities/walletTransaction.entity';
         database: configService.get('DB_DATABASE', { infer: true }),
         timezone: '+03:30',
         entities: [
-          UserEntity, 
+          UserEntity,
           RequestsEntity,
           ApiKeyEntity,
           TranscribeEntity,
           WalletEntity,
           WalletTransactionEntity,
+          IdValidationEntity,
+          IdCardRecordEntity,
         ],
-        // synchronize: configService.get('DB_SYNCHRONIZE', { infer: true }),
-        synchronize: true,
-        logging: configService.get('NODE_ENV', { infer: true }) !== 'production',
+        synchronize: configService.get('DB_SYNCHRONIZE', { infer: true }),
+        logging:
+          configService.get('NODE_ENV', { infer: true }) !== 'production',
       }),
     }),
   ],
@@ -41,7 +45,9 @@ import { WalletTransactionEntity } from './entities/walletTransaction.entity';
     RequestsEntity,
     TranscribeEntity,
     WalletEntity,
-    WalletTransactionEntity
+    WalletTransactionEntity,
+    IdValidationEntity,
+    IdCardRecordEntity,
   ],
   exports: [
     ApiKeyEntity,
@@ -49,7 +55,9 @@ import { WalletTransactionEntity } from './entities/walletTransaction.entity';
     RequestsEntity,
     TranscribeEntity,
     WalletEntity,
-    WalletTransactionEntity
+    WalletTransactionEntity,
+    IdValidationEntity,
+    IdCardRecordEntity,
   ],
 })
 export class DatabaseModule {}

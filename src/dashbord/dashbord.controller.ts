@@ -1,22 +1,29 @@
-import { Controller, Get, HttpCode, HttpStatus, Req, UsePipes } from '@nestjs/common';
 import {
-  ApiProperty,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Req,
+  UsePipes,
+} from '@nestjs/common';
+import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCookieAuth,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProperty,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { AuthenticatedRequest } from 'src/common/guards/auth.guard';
+import { getAuthenticatedUserId } from 'src/common/utils/request-user.util';
 import { AUTH_CONSTANTS } from '../common/constants/auth.constants';
 import { ErrorCode } from '../common/errors/error-code.enum';
 import { AppValidationPipe } from '../common/pipes/validation.pipe';
 import { TodayInfoResponseDto } from './dashbord.dto';
 import { DashbordService } from './dashbord.service';
-import { UnauthorizedError } from 'src/common/errors/auth.errors';
-import { AuthenticatedRequest } from 'src/common/guards/auth.guard';
 
 class ErrorSchema {
   @ApiProperty({ example: 401 })
@@ -33,9 +40,7 @@ class ErrorSchema {
 @Controller('dashbord')
 @UsePipes(AppValidationPipe)
 export class DashbordController {
-  constructor(
-    private readonly dashbordService: DashbordService,
-  ) {}
+  constructor(private readonly dashbordService: DashbordService) {}
 
   @Get('today-info')
   @HttpCode(HttpStatus.OK)
@@ -52,14 +57,9 @@ export class DashbordController {
     description: 'Authenticated user lacks permission.',
   })
   @ApiBadRequestResponse({ type: ErrorSchema })
-  async todayInfo(
+  todayInfo(
     @Req() request: AuthenticatedRequest,
   ): Promise<TodayInfoResponseDto> {
-    const userId = request.user?.userId;
-    if (!userId) {
-      throw new UnauthorizedError();
-    }
-
-    return this.dashbordService.todayInfo(userId);
+    return this.dashbordService.todayInfo(getAuthenticatedUserId(request));
   }
 }

@@ -22,48 +22,45 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { AUTH_CONSTANTS } from 'src/common/constants/auth.constants';
+import { AuthenticatedRequest } from 'src/common/guards/auth.guard';
+import { AppValidationPipe } from 'src/common/pipes/validation.pipe';
+import { getAuthenticatedUserId } from 'src/common/utils/request-user.util';
 import {
   TranscriptionResponseDto,
   UploadAudioResponseDto,
 } from './transcription.dto';
-import { audioMulterOptions } from './transcription.multer';
+import {
+  ACCEPTED_AUDIO_FORMATS,
+  audioMulterOptions,
+  MAX_AUDIO_SIZE_BYTES,
+} from './transcription.multer';
 import { TranscriptionService } from './transcription.service';
-import { AppValidationPipe } from 'src/common/pipes/validation.pipe';
-import { AUTH_CONSTANTS } from 'src/common/constants/auth.constants';
-import { AuthenticatedRequest } from 'src/common/guards/auth.guard';
-import { UnauthorizedError } from 'src/common/errors/auth.errors';
-
-/** Shape added to req by the JWT auth guard */
 
 @ApiTags('Transcriptions')
-@Controller(['transcriptions', 'Transcriptions'])
+@ApiBearerAuth()
+@ApiCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
+@ApiHeader({
+  name: 'X-API-Key',
+  required: false,
+  description: 'API key alternative to JWT auth for server-to-server requests.',
+})
+@Controller('transcriptions')
 @UsePipes(AppValidationPipe)
 export class TranscriptionController {
   constructor(private readonly transcriptionService: TranscriptionService) {}
 
-  // ─── POST /transcriptions ─────────────────────────────────────────────────
-
   @Post()
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
-  @ApiCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
-  @ApiHeader({
-    name: 'X-API-Key',
-    required: false,
-    description:
-      'API key alternative to JWT auth for server-to-server transcription uploads.',
-  })
   @UseInterceptors(FileInterceptor('audio', audioMulterOptions))
   @ApiOperation({
     summary: 'Upload an audio file for transcription',
     description:
-      'Accepts an audio file (mp3, wav, ogg, webm, m4a, aac, flac, amr – max 50 MB). ' +
-      'Calculates duration, creates a request, transcribes the audio, records a wallet transaction, ' +
-      'debits the user wallet, and returns the completed transcription.',
+      'Creates a request, runs speech-to-text, stores the transcript, debits the wallet, and records a wallet transaction.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Audio file upload',
+    description: `Audio file upload. Max size: ${MAX_AUDIO_SIZE_BYTES / 1024 / 1024} MB.`,
     schema: {
       type: 'object',
       required: ['audio'],
@@ -71,7 +68,7 @@ export class TranscriptionController {
         audio: {
           type: 'string',
           format: 'binary',
-          description: 'Audio file (mp3, wav, ogg, webm, m4a, aac, flac, amr)',
+          description: `Accepted formats: ${ACCEPTED_AUDIO_FORMATS.join(', ')}`,
         },
       },
     },
@@ -83,7 +80,7 @@ export class TranscriptionController {
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid or missing audio file.',
+    description: 'Invalid file or insufficient wallet balance.',
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
@@ -91,14 +88,10 @@ export class TranscriptionController {
   })
   async uploadAudio(
     @Req() req: AuthenticatedRequest,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File | undefined,
   ): Promise<UploadAudioResponseDto> {
-    const userId = req.user?.userId;
-    if (!userId) {
-      throw new UnauthorizedError();
-    }
     const record = await this.transcriptionService.uploadAndTranscribe(
-      userId,
+      getAuthenticatedUserId(req),
       file,
     );
 
@@ -108,27 +101,18 @@ export class TranscriptionController {
     };
   }
 
-  // ─── GET /transcriptions ──────────────────────────────────────────────────
-
   @Get()
   @ApiOperation({ summary: "List the authenticated user's transcriptions" })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Array of transcription records, newest first.',
+    description: 'Transcription records, newest first.',
     type: [TranscriptionResponseDto],
   })
   listMine(
     @Req() req: AuthenticatedRequest,
   ): Promise<TranscriptionResponseDto[]> {
-    const userId = req.user?.userId;
-    if (!userId) {
-      throw new UnauthorizedError();
-    }
-
-    return this.transcriptionService.listByUser(userId);
+    return this.transcriptionService.listByUser(getAuthenticatedUserId(req));
   }
-
-  // ─── GET /transcriptions/:id ──────────────────────────────────────────────
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single transcription by ID' })
@@ -150,11 +134,6 @@ export class TranscriptionController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
   ): Promise<TranscriptionResponseDto> {
-    const userId = req.user?.userId;
-    if (!userId) {
-      throw new UnauthorizedError();
-    }
-
-    return this.transcriptionService.getById(id, userId);
+    return this.transcriptionService.getById(id, getAuthenticatedUserId(req));
   }
 }

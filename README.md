@@ -1,56 +1,116 @@
-# Rivas Authentication Service
+# Rivas API Service
 
-Production-ready authentication service using NestJS, TypeScript, MySQL, Redis, phone OTP, JWT, Swagger, Jest, and Supertest.
+Rivas is a NestJS API for phone OTP authentication, wallet credit, API keys, and audio transcription. It uses TypeScript, MySQL, Redis, TypeORM, Swagger/OpenAPI, Jest, and Docker Compose.
 
 ## Features
 
-- Clean module boundaries: controller → service → repository.
-- MySQL persistence via TypeORM.
-- Redis refresh token storage and access token blacklist.
-- SMS one-time-code login/register flow.
-- JWT access tokens with opaque rotating refresh tokens.
-- `POST /auth/request-code` and `POST /auth/verify-code` phone authentication.
-- Rate limiting, validation, sanitized error responses, httpOnly refresh cookie support.
-- Swagger docs at `/docs`.
+- Phone-number OTP login and registration.
+- JWT access tokens with opaque refresh tokens stored in Redis.
+- Global authentication guard for JWT, refresh-token rotation, and `X-API-Key`.
+- API key generation, hashing, Redis caching, rate limiting, and revocation.
+- Wallet balance, wallet top-up records, and transaction history.
+- Audio upload and synchronous transcription workflow with wallet debit.
+- MySQL persistence through TypeORM repositories.
+- Redoc documentation at `/docs` and OpenAPI JSON at `/swagger-json`.
 
-## Setup
+## Project Structure
+
+```text
+src/
+  auth/            Phone OTP auth, JWT issue/refresh/logout
+  apiKey/          API key generation, validation, and docs
+  wallet/          Wallet balance and transaction endpoints
+  dashbord/        Dashboard summary endpoints
+  Transcription/   Audio upload and transcription workflow
+  database/        TypeORM entities, repositories, and schema
+  redis/           Redis provider module
+  common/          Guards, filters, pipes, errors, decorators, utilities
+  config/          Environment schema and configuration
+```
+
+## Requirements
+
+- Node.js 20 or newer
+- npm
+- MySQL 8
+- Redis 7
+- Optional: Docker and Docker Compose
+- Optional for accurate transcription duration: `ffprobe`
+
+## Local Setup
 
 ```bash
 npm install
 cp .env.example .env
-```
-
-Create the MySQL schema with `src/database/schema.sql`, or set `DB_SYNCHRONIZE=true` for local development only.
-
-```bash
 npm run start:dev
 ```
 
+Create the database from [src/database/schema.sql](src/database/schema.sql) or set `DB_SYNCHRONIZE=true` for local development only. Keep `DB_SYNCHRONIZE=false` in production.
+
+The API defaults to `http://localhost:3000`.
+
 ## Docker
 
-Run the API with MySQL and Redis:
-
 ```bash
-# optional: customize secrets in .env.docker first
 docker compose up --build
 ```
 
-The API is available at `http://localhost:3000` and Swagger docs at `http://localhost:3000/docs`.
-MySQL and Redis are exposed on `localhost:3306` and `localhost:6379`.
-If you already created an older database schema, reset local Docker data with `docker compose down -v`.
+Docker Compose starts the API, MySQL, Redis, and RabbitMQ. The API is available at `http://localhost:3000`, Redoc at `http://localhost:3000/docs`, and OpenAPI JSON at `http://localhost:3000/swagger-json`.
 
-## Endpoints
+If local schema state is stale, reset Docker volumes:
 
-- `POST /auth/request-code` sends a verification code to a phone number.
-- `POST /auth/verify-code` verifies the code, creates the user if needed, and logs in.
-- `POST /auth/refresh` validates and rotates refresh tokens.
-- `POST /auth/logout` blacklists the current access token and revokes the refresh token.
-- `POST /api-keys` creates an API key for the authenticated user.
-- `POST /transcriptions` uploads an audio file for transcription. It accepts either JWT auth or `X-API-Key`.
+```bash
+docker compose down -v
+docker compose up --build
+```
 
-## API Key Transcription Flow
+## Common Commands
 
-Create an API key with a logged-in user:
+```bash
+npm run build
+npm run lint
+npm test
+npm run test:e2e
+npm run test:cov
+```
+
+## Documentation
+
+- [API Reference](docs/API.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development Guide](docs/DEVELOPMENT.md)
+- [API Key Module](src/apiKey/README.md)
+- [Transcription Module](src/Transcription/README.md)
+
+## Authentication Quick Start
+
+Request an OTP:
+
+```bash
+curl -X POST http://localhost:3000/auth/request-code \
+  -H "Content-Type: application/json" \
+  -d "{\"phoneNumber\":\"+989121234567\"}"
+```
+
+Verify the OTP:
+
+```bash
+curl -X POST http://localhost:3000/auth/verify-code \
+  -H "Content-Type: application/json" \
+  -d "{\"phoneNumber\":\"+989121234567\",\"code\":\"123456\"}"
+```
+
+Use the returned access token on protected endpoints:
+
+```bash
+curl http://localhost:3000/wallet/total-credit \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "X-Refresh-Token: <refreshToken>"
+```
+
+## Transcription Quick Start
+
+Create an API key:
 
 ```bash
 curl -X POST http://localhost:3000/api-keys \
@@ -60,7 +120,7 @@ curl -X POST http://localhost:3000/api-keys \
   -d "{\"name\":\"Transcription client\"}"
 ```
 
-Use the returned `apiKey` to upload audio:
+Upload audio with that key:
 
 ```bash
 curl -X POST http://localhost:3000/transcriptions \
@@ -68,31 +128,4 @@ curl -X POST http://localhost:3000/transcriptions \
   -F "audio=@./voice.mp3"
 ```
 
-The upload field must be named `audio`. Supported audio types are configured in `src/Transcription/transcription.multer.ts`.
-
-In protected controllers, use `req.user.userId`. The global auth guard fills this value for both JWT and API-key requests. If you need API-key metadata, read `req.apiKey`.
-
-## Protecting Future Routes
-
-Use the `Auth` decorator on controllers or handlers that require an authenticated request:
-
-```ts
-import { Auth } from './common/decorators/auth.decorator';
-import { UserRole } from './database/entities/user.entity';
-
-@Auth()
-// any logged-in user
-
-@Auth(UserRole.ADMIN)
-// admin users only
-```
-
-## Tests
-
-```bash
-npm test
-npm run test:e2e
-npm run test:cov
-```
-
-Use `.env.test.example` for a dedicated test database when running integration tests against real infrastructure.
+The multipart field name must be `audio`.

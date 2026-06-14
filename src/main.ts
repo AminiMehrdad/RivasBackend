@@ -30,20 +30,30 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(new AppValidationPipe());
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Authentication Service')
-    .setDescription('Authentication API using MySQL, Redis, Argon2, and JWT.')
+    .setTitle('Rivas API Service')
+    .setDescription(
+      'Phone OTP authentication, wallets, API keys, and transcription.',
+    )
     .setVersion('1.0.0')
     .addBearerAuth()
     .addApiKey(
-  {
-    type: 'apiKey',
-    in: 'header',
-    name: AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE,
-    description: 'JWT refresh token',
-  },
-  AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE,
-)
-    // .addCookieAuth(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE)
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE,
+        description: 'JWT refresh token',
+      },
+      AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE,
+    )
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'X-API-Key',
+        description: 'API key for server-to-server requests',
+      },
+      'X-API-Key',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('swagger', app, document);

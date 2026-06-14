@@ -1,193 +1,251 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TranscriptionRepository } from '../../../src/database/Repos/transcription.repo';
+import { INJECTION_TOKENS } from 'src/common/constants/injection-tokens';
+import { RequestRepository } from 'src/database/Repos/requests.repo';
+import { TranscribeRepository } from 'src/database/Repos/transcribe.repo';
+import { WalletRepository } from 'src/database/Repos/wallet.repo';
+import { WalletTransactionRepository } from 'src/database/Repos/walletTransaction.repo';
 import {
-  TranscriptionEntity,
+  ModuleType,
+  RequestStatus,
+} from 'src/database/entities/requests.entity';
+import {
+  TranscribeEntity,
   TranscriptionStatus,
-} from '../../../src/database/entities/transcription.entity';
-import { SpeechToTextService } from '../../../src/transcription/speech-to-text.service';
-import { TranscriptionService } from '../../../src/transcription/transcription.service';
+} from 'src/database/entities/transcribe.entity';
+import { WalletType } from 'src/database/entities/wallet.entity';
+import {
+  TransactionDirection,
+  TransactionType,
+} from 'src/database/entities/walletTransaction.entity';
+import { SpeechToTextService } from './speech-to-text.service';
+import { TranscriptionService } from './transcription.service';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const makeFile = (): Express.Multer.File =>
+  ({
+    path: 'uploads/audio/test.mp3',
+    originalname: 'test.mp3',
+    mimetype: 'audio/mpeg',
+    size: 32000,
+  }) as Express.Multer.File;
 
-const makeRecord = (overrides: Partial<TranscriptionEntity> = {}): TranscriptionEntity =>
-  Object.assign(new TranscriptionEntity(), {
+const makeTranscribe = (
+  overrides: Partial<TranscribeEntity> = {},
+): TranscribeEntity =>
+  ({
     id: 1,
-    userId: 'user-abc',
-    audioUrl: 'uploads/audio/2024-06-08_uuid.mp3',
-    textUrl: null,
+    uniqueId: 'transcribe-1',
+    inputUrl: 'uploads/audio/test.mp3',
+    outputUrl: null,
+    duration: 2,
     status: TranscriptionStatus.PENDING,
+    requestId: 'request-1',
     errorMessage: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date('2026-06-13T00:00:00.000Z'),
     ...overrides,
-  });
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
+  }) as TranscribeEntity;
 
 describe('TranscriptionService', () => {
   let service: TranscriptionService;
-
-  let repoMock: jest.Mocked<TranscriptionRepository>;
-  let sttMock: jest.Mocked<SpeechToTextService>;
+  let transcribeRepository: jest.Mocked<TranscribeRepository>;
+  let requestRepository: jest.Mocked<RequestRepository>;
+  let walletRepository: jest.Mocked<WalletRepository>;
+  let walletTransactionRepository: jest.Mocked<WalletTransactionRepository>;
+  let speechToTextService: jest.Mocked<SpeechToTextService>;
 
   beforeEach(async () => {
-    repoMock = {
-      create: jest.fn(),
-      findById: jest.fn(),
-      findByUser: jest.fn(),
+    transcribeRepository = {
+      createTranscribe: jest.fn(),
+      getTranscribeById: jest.fn(),
+      getTodayDurationByUserId: jest.fn(),
+      getAllTranscribes: jest.fn(),
+      updateTranscribe: jest.fn(),
+      deleteTranscribe: jest.fn(),
       markProcessing: jest.fn(),
       markCompleted: jest.fn(),
       markFailed: jest.fn(),
-    } as unknown as jest.Mocked<TranscriptionRepository>;
+      findByUserId: jest.fn(),
+    };
 
-    sttMock = {
+    requestRepository = {
+      createRequest: jest.fn(),
+      getRequestById: jest.fn(),
+      getRequestsByUserId: jest.fn(),
+      getTodayCostByUserId: jest.fn(),
+      getTodayRequestsCountByUserId: jest.fn(),
+      getAllRequests: jest.fn(),
+      updateRequest: jest.fn(),
+      deleteRequest: jest.fn(),
+    };
+
+    walletRepository = {
+      createWallet: jest.fn(),
+      getWalletByUserId: jest.fn(),
+      getMainWalletByUserId: jest.fn(),
+      getWalletById: jest.fn(),
+      getAllWallets: jest.fn(),
+      updateWallet: jest.fn(),
+      deleteWallet: jest.fn(),
+    };
+
+    walletTransactionRepository = {
+      createTransaction: jest.fn(),
+      getTransactionsByWalletId: jest.fn(),
+      getTransactionById: jest.fn(),
+      getTransactionsByUserId: jest.fn(),
+      getAllTransactions: jest.fn(),
+      updateTransaction: jest.fn(),
+      deleteTransaction: jest.fn(),
+    };
+
+    speechToTextService = {
       transcribeAudioFile: jest.fn(),
     } as unknown as jest.Mocked<SpeechToTextService>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TranscriptionService,
-        { provide: TranscriptionRepository, useValue: repoMock },
-        { provide: SpeechToTextService, useValue: sttMock },
+        {
+          provide: INJECTION_TOKENS.TRANSCRIBE_REPOSITORY,
+          useValue: transcribeRepository,
+        },
+        {
+          provide: INJECTION_TOKENS.REQUEST_REPOSITORY,
+          useValue: requestRepository,
+        },
+        {
+          provide: INJECTION_TOKENS.WALLET_REPOSITORY,
+          useValue: walletRepository,
+        },
+        {
+          provide: INJECTION_TOKENS.WALLET_TRANSACTION_REPOSITORY,
+          useValue: walletTransactionRepository,
+        },
+        { provide: SpeechToTextService, useValue: speechToTextService },
       ],
     }).compile();
 
     service = module.get<TranscriptionService>(TranscriptionService);
   });
 
-  // ─── uploadAndTranscribe ──────────────────────────────────────────────────
-
-  describe('uploadAndTranscribe', () => {
-    it('creates a DB record and returns it immediately with PENDING status', async () => {
-      const record = makeRecord();
-      repoMock.create.mockResolvedValue(record);
-      sttMock.transcribeAudioFile.mockResolvedValue('transcript text');
-      repoMock.markProcessing.mockResolvedValue(undefined);
-      repoMock.markCompleted.mockResolvedValue(undefined);
-
-      const file = {
-        path: '/app/uploads/audio/2024-06-08_uuid.mp3',
-        originalname: 'test.mp3',
-        mimetype: 'audio/mpeg',
-      } as Express.Multer.File;
-
-      const result = await service.uploadAndTranscribe('user-abc', file);
-
-      expect(repoMock.create).toHaveBeenCalledWith({
-        userId: 'user-abc',
-        audioUrl: expect.stringContaining('uploads/audio'),
-      });
-      expect(result.status).toBe(TranscriptionStatus.PENDING);
+  it('creates request, transcribe, wallet transaction and completes successfully', async () => {
+    const transcribe = makeTranscribe();
+    const completed = makeTranscribe({
+      status: TranscriptionStatus.COMPLETED,
+      outputUrl: 'uploads/text/result.txt',
     });
 
-    it('fires background processing without blocking the response', async () => {
-      const record = makeRecord();
-      repoMock.create.mockResolvedValue(record);
+    walletRepository.getMainWalletByUserId.mockResolvedValue({
+      uniqueId: 'wallet-1',
+      userId: 'user-1',
+      type: WalletType.MAIN,
+      balance: 5000,
+    } as never);
+    requestRepository.createRequest.mockResolvedValue({
+      uniqueId: 'request-1',
+      userId: 'user-1',
+    } as never);
+    transcribeRepository.createTranscribe.mockResolvedValue(transcribe);
+    speechToTextService.transcribeAudioFile.mockResolvedValue('hello world');
+    transcribeRepository.getTranscribeById.mockResolvedValue(completed);
+    walletTransactionRepository.createTransaction.mockResolvedValue({
+      uniqueId: 'tx-1',
+    } as never);
 
-      // STT takes a long time — should not block uploadAndTranscribe
-      let sttResolved = false;
-      sttMock.transcribeAudioFile.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => {
-              sttResolved = true;
-              resolve('text');
-            }, 200),
-          ),
-      );
-      repoMock.markProcessing.mockResolvedValue(undefined);
-      repoMock.markCompleted.mockResolvedValue(undefined);
+    const result = await service.uploadAndTranscribe('user-1', makeFile());
 
-      const file = { path: '/app/uploads/audio/file.mp3' } as Express.Multer.File;
-      await service.uploadAndTranscribe('user-abc', file);
+    expect(requestRepository.createRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        cost: 2000,
+        moduleType: ModuleType.TRANSCRIPTION,
+        status: RequestStatus.PROCESSING,
+      }),
+    );
+    expect(transcribeRepository.markProcessing).toHaveBeenCalledWith(
+      'transcribe-1',
+    );
+    expect(walletTransactionRepository.createTransaction).toHaveBeenCalledWith({
+      walletId: 'wallet-1',
+      requestId: 'request-1',
+      amount: 2000,
+      balanceAfter: 3000,
+      type: TransactionType.CONSUME,
+      direction: TransactionDirection.DEBIT,
+    });
+    expect(result).toBe(completed);
+  });
 
-      // STT should NOT have resolved yet
-      expect(sttResolved).toBe(false);
+  it('throws when no audio file is provided', async () => {
+    await expect(
+      service.uploadAndTranscribe('user-1', undefined),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('throws when wallet is missing', async () => {
+    walletRepository.getMainWalletByUserId.mockResolvedValue(null);
+
+    await expect(
+      service.uploadAndTranscribe('user-1', makeFile()),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('throws when wallet balance is not enough', async () => {
+    walletRepository.getMainWalletByUserId.mockResolvedValue({
+      uniqueId: 'wallet-1',
+      userId: 'user-1',
+      type: WalletType.MAIN,
+      balance: 1000,
+    } as never);
+
+    await expect(
+      service.uploadAndTranscribe('user-1', makeFile()),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('marks request failed when speech-to-text fails', async () => {
+    const transcribe = makeTranscribe();
+
+    walletRepository.getMainWalletByUserId.mockResolvedValue({
+      uniqueId: 'wallet-1',
+      userId: 'user-1',
+      type: WalletType.MAIN,
+      balance: 5000,
+    } as never);
+    requestRepository.createRequest.mockResolvedValue({
+      uniqueId: 'request-1',
+      userId: 'user-1',
+    } as never);
+    transcribeRepository.createTranscribe.mockResolvedValue(transcribe);
+    speechToTextService.transcribeAudioFile.mockRejectedValue(
+      new Error('provider unavailable'),
+    );
+
+    await expect(
+      service.uploadAndTranscribe('user-1', makeFile()),
+    ).rejects.toThrow('provider unavailable');
+
+    expect(transcribeRepository.markFailed).toHaveBeenCalledWith(
+      'transcribe-1',
+      'provider unavailable',
+    );
+    expect(requestRepository.updateRequest).toHaveBeenCalledWith('request-1', {
+      status: RequestStatus.FAILED,
+      failedAt: expect.any(Date),
     });
   });
 
-  // ─── getById ──────────────────────────────────────────────────────────────
+  it('scopes getById to the requesting user', async () => {
+    const transcribe = makeTranscribe();
 
-  describe('getById', () => {
-    it('returns the record when it belongs to the user', async () => {
-      const record = makeRecord();
-      repoMock.findById.mockResolvedValue(record);
+    transcribeRepository.getTranscribeById.mockResolvedValue(transcribe);
+    requestRepository.getRequestById.mockResolvedValue({
+      uniqueId: 'request-1',
+      userId: 'user-1',
+    } as never);
 
-      const result = await service.getById(1, 'user-abc');
-      expect(result).toBe(record);
-    });
-
-    it('throws NotFoundException when record does not exist', async () => {
-      repoMock.findById.mockResolvedValue(null);
-      await expect(service.getById(99, 'user-abc')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('throws NotFoundException when record belongs to a different user', async () => {
-      const record = makeRecord({ userId: 'other-user' });
-      repoMock.findById.mockResolvedValue(record);
-      await expect(service.getById(1, 'user-abc')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  // ─── listByUser ───────────────────────────────────────────────────────────
-
-  describe('listByUser', () => {
-    it('delegates to the repository', async () => {
-      const records = [makeRecord(), makeRecord({ id: 2 })];
-      repoMock.findByUser.mockResolvedValue(records);
-
-      const result = await service.listByUser('user-abc');
-      expect(repoMock.findByUser).toHaveBeenCalledWith('user-abc');
-      expect(result).toHaveLength(2);
-    });
-  });
-
-  // ─── background processing ────────────────────────────────────────────────
-
-  describe('background processing (via uploadAndTranscribe)', () => {
-    it('marks the record as completed when STT succeeds', async () => {
-      const record = makeRecord();
-      repoMock.create.mockResolvedValue(record);
-      repoMock.markProcessing.mockResolvedValue(undefined);
-      repoMock.markCompleted.mockResolvedValue(undefined);
-      sttMock.transcribeAudioFile.mockResolvedValue('Hello world');
-
-      const file = { path: '/app/uploads/audio/file.mp3' } as Express.Multer.File;
-      await service.uploadAndTranscribe('user-abc', file);
-
-      // Let the microtask queue drain
-      await new Promise((r) => setTimeout(r, 50));
-
-      expect(repoMock.markProcessing).toHaveBeenCalledWith(record.id);
-      expect(repoMock.markCompleted).toHaveBeenCalledWith(
-        record.id,
-        expect.stringContaining('uploads/text'),
-      );
-    });
-
-    it('marks the record as failed when STT throws', async () => {
-      const record = makeRecord();
-      repoMock.create.mockResolvedValue(record);
-      repoMock.markProcessing.mockResolvedValue(undefined);
-      repoMock.markFailed.mockResolvedValue(undefined);
-      sttMock.transcribeAudioFile.mockRejectedValue(
-        new Error('STT provider unavailable'),
-      );
-
-      const file = { path: '/app/uploads/audio/file.mp3' } as Express.Multer.File;
-      await service.uploadAndTranscribe('user-abc', file);
-
-      await new Promise((r) => setTimeout(r, 50));
-
-      expect(repoMock.markFailed).toHaveBeenCalledWith(
-        record.id,
-        'STT provider unavailable',
-      );
-    });
+    await expect(service.getById('transcribe-1', 'user-2')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

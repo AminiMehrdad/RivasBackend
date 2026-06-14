@@ -1,44 +1,58 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, Index, CreateDateColumn } from 'typeorm';
-import { RequestsEntity } from './requests.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  Index,
+  CreateDateColumn,
+} from 'typeorm';
 import { IdValidationEntity } from './idValidation.entity';
 
-@Entity('id_records')
-export class IdRecordsEntity     {
+@Entity('id_card_records')
+export class IdCardRecordEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Index({ unique: true })
-  @Column({ name: "unique_id", type: "varchar" })
-  uniqueId: string
+  @Column({ name: 'unique_id', type: 'varchar' })
+  uniqueId: string;
 
-  @Column({ name: 'id_code_card', type: 'int', unique: true })
-  idCodeCard: number;
+  @Column({ name: 'id_code_card', type: 'varchar', unique: true })
+  idCodeCard: string;
 
   @Column({ name: 'image_url', type: 'varchar' })
   imageUrl: string;
 
-  @Column({ name: 'name', type: 'varchar' })
-  name: string;
+  @Column({ name: 'first_name', type: 'varchar' })
+  firstName: string;
 
-  @Column({ name: 'lastname', type: 'varchar' })
-  lastname: string;
+  @Column({ name: 'last_name', type: 'varchar' })
+  lastName: string;
 
-  @Column({ name: 'birthday', type: 'varchar' })
-  birthday: string;
+  @Column({ name: 'birth_date', type: 'varchar' })
+  birthDate: string;
 
   @Column({ name: 'fathers_name', type: 'varchar' })
   fathersName: string;
 
-  @Column({ name: 'expirename', type: 'varchar' })
-  expireName: string;
+  @Column({ name: 'expiration_date', type: 'varchar' })
+  expirationDate: string;
+
+  @Column({ name: 'id_validation_id', type: 'varchar' })
+  idValidationId: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @OneToOne(() => RequestsEntity, (request) => request.idValidation)
-  @JoinColumn({ name: 'request_id', referencedColumnName: 'uniqueId' })
-  request: RequestsEntity;
-
-  @OneToOne(() => IdValidationEntity, (idValidation) => idValidation.requestByUniqueId)
+  @OneToOne(
+    () => IdValidationEntity,
+    (idValidation) => idValidation.idCardRecord,
+    {
+      nullable: false,
+      onDelete: 'CASCADE',
+    },
+  )
+  @JoinColumn({ name: 'id_validation_id', referencedColumnName: 'uniqueId' })
   idValidation: IdValidationEntity;
 }

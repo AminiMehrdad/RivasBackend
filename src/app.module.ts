@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AppValidationPipe } from './common/pipes/validation.pipe';
@@ -33,7 +32,7 @@ import { IdcardModule } from './idcard/idcard.module';
     WalletModule,
     ApiKeyModule,
     TranscriptionModule,
-    IdcardModule
+    IdcardModule,
   ],
   providers: [
     {
@@ -58,4 +57,4 @@ import { IdcardModule } from './idcard/idcard.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,7 +1,8 @@
 services:
   app:
-    build:
-      context: .
+    # build:
+    #   context: .
+    image: mehrdad1010/my-app:${IMAGE_TAG:-latest}
     env_file:
       - .env.docker
     ports:

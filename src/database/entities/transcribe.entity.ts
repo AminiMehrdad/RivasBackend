@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, Index, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  Index,
+  CreateDateColumn,
+} from 'typeorm';
 import { RequestsEntity } from './requests.entity';
 
 export enum TranscriptionStatus {
@@ -14,17 +22,17 @@ export class TranscribeEntity {
   id: number;
 
   @Index({ unique: true })
-  @Column({ name: "unique_id", type: "varchar" })
-  uniqueId: string
+  @Column({ name: 'unique_id', type: 'varchar' })
+  uniqueId: string;
 
   @Column({ name: 'input_url', type: 'varchar' })
   inputUrl: string;
 
   @Column({ name: 'output_url', type: 'varchar', nullable: true })
-  outputUrl: string;
+  outputUrl: string | null;
 
   @Column({ type: 'int', nullable: true })
-  duration: number;
+  duration: number | null;
 
   @Column({
     type: 'enum',
@@ -42,7 +50,10 @@ export class TranscribeEntity {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @OneToOne(() => RequestsEntity, (request) => request.transcribe)
+  @OneToOne(() => RequestsEntity, (request) => request.transcribe, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'request_id', referencedColumnName: 'uniqueId' })
   request: RequestsEntity;
 }
