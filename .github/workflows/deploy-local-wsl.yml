@@ -1,0 +1,47 @@
+name: Deploy to WSL Server
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy:
+    name: Deploy on WSL self-hosted runner
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show deployment info
+        run: |
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Ref: $GITHUB_REF"
+          echo "Tag: $GITHUB_REF_NAME"
+          echo "Runner: $RUNNER_NAME"
+          echo "Workspace: $GITHUB_WORKSPACE"
+
+      - name: Create .env.docker
+        run: |
+          cat > .env.docker <<EOF
+          PORT=3000
+
+          DB_HOST=mysql
+          DB_PORT=3306
+          DB_USER=auth_user
+          DB_PASSWORD=auth_password
+          DB_NAME=auth_service
+
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+
+          RABBITMQ_DEFAULT_USER=rivas
+          RABBITMQ_DEFAULT_PASS=rivas_password
+          RABBITMQ_DEFAULT_VHOST=/
+          EOF
+
+      - name: Deploy with Docker Compose
+        run: |
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh
