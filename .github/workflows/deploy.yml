@@ -1,28 +1,28 @@
-name: CI/CD Pipeline
+# name: CI/CD Pipeline
 
-on:
-  push:
-    tags:
-      - 'v*'
+# on:
+#   push:
+#     tags:
+#       - 'v*'
 
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    seteps:
-      - name: Checkout code
-        users: actions/checkout@v4
+# jobs:
+#   build-and-push:
+#     runs-on: ubuntu-latest
+#     seteps:
+#       - name: Checkout code
+#         users: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        users: docker/login-actions@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#       - name: Login to Docker Hub
+#         users: docker/login-actions@v3
+#         with:
+#           username: ${{ secrets.DOCKERHUB_USERNAME }}
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            mehrdad1010/my-app:${{ github.ref_name }}
-            mehrdad1010e/my-app:latest
+#       - name: Build and Push
+#         uses: docker/build-push-action@v5
+#         with:
+#           context: .
+#           push: true
+#           tags: |
+#             mehrdad1010/my-app:${{ github.ref_name }}
+#             mehrdad1010e/my-app:latest
